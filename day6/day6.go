@@ -126,6 +126,7 @@ func makeLoops(startR int, startC int, world [][]byte) int {
 func main() {
 	f, err := os.Open("./input1.txt")
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 

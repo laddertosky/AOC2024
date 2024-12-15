@@ -84,6 +84,7 @@ func parseDont(buff string) int {
 func main() {
 	f, err := os.OpenFile("./input1.txt", os.O_RDONLY, 0660)
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 

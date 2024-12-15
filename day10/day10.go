@@ -68,6 +68,7 @@ func panicIf(err error) {
 func main() {
 	f, err := os.Open("./input1.txt")
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 	heights := [][]int{}

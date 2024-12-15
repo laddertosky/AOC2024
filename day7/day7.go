@@ -33,6 +33,7 @@ func backtrack(target int, current int, index int, options []int) bool {
 func main() {
 	f, err := os.Open("./input1.txt")
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 	result := 0

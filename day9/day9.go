@@ -104,6 +104,7 @@ func checkSum2(input string) int {
 func main() {
 	f, err := os.Open("./input1.txt")
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 	if sc.Scan() {
