@@ -127,7 +127,9 @@ func reverseWalk(dist [][][4]int, start [2]int, end [2]int, maze [][]rune) int {
 			if nr < 0 || nc < 0 || nr >= m || nr >= n {
 				continue
 			}
-			if dist[nr][nc][move] < dist[front[0]][front[1]][front[2]] {
+
+			diff := dist[front[0]][front[1]][front[2]] - dist[nr][nc][move]
+			if diff == Forward || diff == Turn+Forward {
 				best[nr*n+nc] = true
 				maze[nr][nc] = Chair
 				queue = append(queue, [3]int{nr, nc, move})
@@ -135,9 +137,21 @@ func reverseWalk(dist [][][4]int, start [2]int, end [2]int, maze [][]rune) int {
 		}
 	}
 
+	// debug purpose
 	for r := range m {
 		for c := range n {
-			fmt.Print(string(maze[r][c]))
+			if maze[r][c] == Chair {
+				minDist := dist[r][c][0]
+				for move := range DIRECTIONS {
+					if dist[r][c][move] < minDist {
+						minDist = dist[r][c][move]
+						minMove = move
+					}
+				}
+				fmt.Print(minDist % 10)
+			} else {
+				fmt.Print(string(maze[r][c]))
+			}
 		}
 		fmt.Println()
 	}
