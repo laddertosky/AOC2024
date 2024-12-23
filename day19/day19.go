@@ -42,57 +42,73 @@ func buildTrie(patterns []string) *TrieNode {
 	return &root
 }
 
-func dfs(towel string, index int, node *TrieNode, root *TrieNode) bool {
+func dfs(cache map[string]map[*TrieNode]int, towel string, index int, node *TrieNode, root *TrieNode) int {
 	if index == len(towel) {
-		return node.isEnd
+		if node.isEnd {
+			return 1
+		}
+		return 0
+	}
+
+	after := towel[index:]
+	if cache[after] != nil && cache[after][node] > 0 {
+		return cache[after][node]
 	}
 
 	c := rune(towel[index])
 	if node.children[c] == nil {
-		return false
+		return 0
 	}
 
-	result := false
-	node = node.children[c]
-	if dfs(towel, index+1, node, root) {
-		result = true
-	} else if node.isEnd && dfs(towel, index+1, root, root) {
-		result = true
+	result := 0
+	next := node.children[c]
+	result += dfs(cache, towel, index+1, next, root)
+
+	if next.isEnd {
+		result += dfs(cache, towel, index+1, root, root)
 	}
+
+	if cache[after] == nil {
+		cache[after] = map[*TrieNode]int{}
+	}
+	cache[after][node] = result
 	return result
 }
 
 // for input1, reverse the input is much much faster
-func do_dfs(root *TrieNode, workers <-chan string, found chan<- bool, done chan<- struct{}) {
+func do_dfs(root *TrieNode, workers <-chan string, found chan<- int, done chan<- struct{}) {
+	cache := map[string]map[*TrieNode]int{}
 	for towel := range workers {
-		result := dfs(towel, 0, root, root)
-		towel = reverse(towel)
+		result := dfs(cache, towel, 0, root, root)
 
 		found <- result
 	}
 	done <- struct{}{}
 }
 
-func collectResult(found <-chan bool) <-chan int {
+func collectResult(found <-chan int) <-chan int {
 	result := make(chan int)
 	go func() {
-		count := 0
-		for f := range found {
-			if f {
-				count++
+		partOne := 0
+		partTwo := 0
+		for count := range found {
+			if count > 0 {
+				partOne++
 			}
+			partTwo += count
 		}
-		result <- count
+		result <- partOne
+		result <- partTwo
 	}()
 	return result
 }
 
-func filterPossible(towels []string, root *TrieNode) int {
+func filterPossible(towels []string, root *TrieNode) <-chan int {
 	WORKERS := 16
 
 	workers := make(chan string)
 	done := make(chan struct{}, WORKERS)
-	found := make(chan bool)
+	found := make(chan int)
 	result := collectResult(found)
 
 	for range WORKERS {
@@ -109,8 +125,7 @@ func filterPossible(towels []string, root *TrieNode) int {
 	}
 
 	close(found)
-
-	return <-result
+	return result
 }
 
 func reverse(input string) string {
@@ -148,9 +163,11 @@ func run(path string, info fs.FileInfo, err error) error {
 		towels = append(towels, towel)
 	}
 
-	partOneResult := filterPossible(towels, trie)
+	result := filterPossible(towels, trie)
+	partOneResult := <-result
+	partTwoResult := <-result
 
-	fmt.Printf("%s, partOne: %d\n", info.Name(), partOneResult)
+	fmt.Printf("%s, partOne: %d, partTwo: %d\n", info.Name(), partOneResult, partTwoResult)
 
 	return nil
 }
