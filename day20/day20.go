@@ -56,10 +56,96 @@ func run(path string, info fs.FileInfo, err error) error {
 	saveAtLeast := 100
 	dist := traverse(board, start, end)
 	partOneResult := findCheatSaving(dist, saveAtLeast)
+	optimizedPartOne := findCheatSavingOptimized(dist, saveAtLeast, 2)
+	if partOneResult != optimizedPartOne {
+		fmt.Printf("optimized: %d, bruteforce: %d\n", optimizedPartOne, partOneResult)
+		panic("Wrong optimization")
+	}
+	partTwoResult := findCheatSavingOptimized(dist, saveAtLeast, 20)
 
-	fmt.Printf("%s, partOne: %d (>= %d)\n", info.Name(), partOneResult, saveAtLeast)
+	fmt.Printf("%s, partOne: %d, partTwo: %d (>=%d)\n", info.Name(), partOneResult, partTwoResult, saveAtLeast)
 
 	return nil
+}
+
+func abs(num int) int {
+	if num < 0 {
+		return -num
+	}
+	return num
+}
+
+func findCheatSavingOptimized(dist [][]int, saveAtLeast, skips int) int {
+	skips--
+	result := 0
+
+	visited := map[int]map[int]int{}
+	record := map[int]int{}
+	m := len(dist)
+	n := len(dist[0])
+
+	for r := range m {
+		for c := range n {
+			if dist[r][c] == Unreachable {
+				continue
+			}
+
+			for _, stepOne := range DIRECTIONS {
+				r1 := r + stepOne[0]
+				c1 := c + stepOne[1]
+				if r1 < 0 || c1 < 0 || r1 >= m || c1 >= n {
+					continue
+				}
+
+				h1 := r1*n + c1
+
+				// |dr| + |dc| <= skips
+				// -(skips - |dr|) <= dc <= skips - |dr|
+				for dr := -skips; dr <= skips; dr++ {
+					nr := r1 + dr
+					if nr < 0 || nr >= m {
+						continue
+					}
+
+					for dc := -skips + abs(dr); dc <= skips-abs(dr); dc++ {
+						nc := c1 + dc
+						if nc < 0 || nc >= n {
+							continue
+						}
+
+						if dist[nr][nc] == Unreachable {
+							continue
+						}
+
+						nh := nr*n + nc
+						if visited[h1] != nil && visited[h1][nh] > 0 {
+							continue
+						}
+
+						walk := abs(nr-r) + abs(nc-c)
+						if dist[nr][nc] <= dist[r][c]+walk {
+							continue
+						}
+
+						save := dist[nr][nc] - dist[r][c] - walk
+
+						if visited[h1] == nil {
+							visited[h1] = map[int]int{}
+						}
+
+						visited[h1][nh] = save
+
+						record[save]++
+						if save >= saveAtLeast {
+							result++
+						}
+					}
+				}
+			}
+		}
+	}
+	// printRecord(record)
+	return result
 }
 
 func traverse(board [][]rune, start [2]int, end [2]int) [][]int {
@@ -127,6 +213,7 @@ func printRecord(record map[int]int) {
 	for _, save := range keys {
 		fmt.Printf("save: %d, count: %d\n", save, record[save])
 	}
+	fmt.Println()
 }
 
 func findCheatSaving(dist [][]int, saveAtLeast int) int {
@@ -191,7 +278,7 @@ func findCheatSaving(dist [][]int, saveAtLeast int) int {
 		}
 	}
 
-	printRecord(record)
+	// printRecord(record)
 	return result
 }
 
