@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +34,11 @@ func run(path string, info fs.FileInfo, err error) error {
 
 	sc := bufio.NewScanner(f)
 
+	sc.Scan()
+	header := sc.Text()
+	saveAtLeast, err := strconv.Atoi(header)
+	panicIf(err)
+
 	board := [][]rune{}
 	start := [2]int{}
 	end := [2]int{}
@@ -53,7 +59,6 @@ func run(path string, info fs.FileInfo, err error) error {
 		board = append(board, row)
 	}
 
-	saveAtLeast := 100
 	dist := traverse(board, start, end)
 	partOneResult := findCheatSaving(dist, saveAtLeast)
 	optimizedPartOne := findCheatSavingOptimized(dist, saveAtLeast, 2)
@@ -76,7 +81,6 @@ func abs(num int) int {
 }
 
 func findCheatSavingOptimized(dist [][]int, saveAtLeast, skips int) int {
-	skips--
 	result := 0
 
 	visited := map[int]map[int]int{}
@@ -89,62 +93,48 @@ func findCheatSavingOptimized(dist [][]int, saveAtLeast, skips int) int {
 			if dist[r][c] == Unreachable {
 				continue
 			}
+			h := r*n + c
 
-			for _, stepOne := range DIRECTIONS {
-				r1 := r + stepOne[0]
-				c1 := c + stepOne[1]
-				if r1 < 0 || c1 < 0 || r1 >= m || c1 >= n {
+			// |dr| + |dc| <= skips
+			// -(skips - |dr|) <= dc <= skips - |dr|
+			for dr := -skips; dr <= skips; dr++ {
+				nr := r + dr
+				if nr < 0 || nr >= m {
 					continue
 				}
 
-				h1 := r1*n + c1
-
-				// |dr| + |dc| <= skips
-				// -(skips - |dr|) <= dc <= skips - |dr|
-				for dr := -skips; dr <= skips; dr++ {
-					nr := r1 + dr
-					if nr < 0 || nr >= m {
+				for dc := -skips + abs(dr); dc <= skips-abs(dr); dc++ {
+					nc := c + dc
+					if nc < 0 || nc >= n {
+						continue
+					}
+					if dist[nr][nc] == Unreachable {
+						continue
+					}
+					nh := nr*n + nc
+					if visited[h] != nil && visited[h][nh] > 0 {
+						continue
+					}
+					walk := abs(nr-r) + abs(nc-c)
+					if dist[nr][nc] <= dist[r][c]+walk {
 						continue
 					}
 
-					for dc := -skips + abs(dr); dc <= skips-abs(dr); dc++ {
-						nc := c1 + dc
-						if nc < 0 || nc >= n {
-							continue
-						}
-
-						if dist[nr][nc] == Unreachable {
-							continue
-						}
-
-						nh := nr*n + nc
-						if visited[h1] != nil && visited[h1][nh] > 0 {
-							continue
-						}
-
-						walk := abs(nr-r) + abs(nc-c)
-						if dist[nr][nc] <= dist[r][c]+walk {
-							continue
-						}
-
-						save := dist[nr][nc] - dist[r][c] - walk
-
-						if visited[h1] == nil {
-							visited[h1] = map[int]int{}
-						}
-
-						visited[h1][nh] = save
-
-						record[save]++
-						if save >= saveAtLeast {
-							result++
-						}
+					save := dist[nr][nc] - dist[r][c] - walk
+					if visited[h] == nil {
+						visited[h] = map[int]int{}
 					}
+
+					visited[h][nh] = save
+					record[save]++
+					if save >= saveAtLeast {
+						result++
+					}
+
 				}
 			}
 		}
 	}
-	// printRecord(record)
 	return result
 }
 
@@ -229,6 +219,7 @@ func findCheatSaving(dist [][]int, saveAtLeast int) int {
 			if dist[r][c] == Unreachable {
 				continue
 			}
+			h := r*n + c
 
 			for _, stepOne := range DIRECTIONS {
 				r1 := r + stepOne[0]
@@ -236,8 +227,6 @@ func findCheatSaving(dist [][]int, saveAtLeast int) int {
 				if r1 < 0 || c1 < 0 || r1 >= m || c1 >= n {
 					continue
 				}
-
-				h1 := r1*n + c1
 
 				for _, stepTwo := range DIRECTIONS {
 					r2 := r1 + stepTwo[0]
@@ -256,17 +245,17 @@ func findCheatSaving(dist [][]int, saveAtLeast int) int {
 
 					h2 := r2*n + c2
 
-					if visited[h1] != nil && visited[h1][h2] > 0 {
+					if visited[h] != nil && visited[h][h2] > 0 {
 						continue
 					}
 
 					save := dist[r2][c2] - dist[r][c] - 2
 
 					if save > 0 {
-						if visited[h1] == nil {
-							visited[h1] = map[int]int{}
+						if visited[h] == nil {
+							visited[h] = map[int]int{}
 						}
-						visited[h1][h2] = save
+						visited[h][h2] = save
 						record[save]++
 						if save >= saveAtLeast {
 							result++
@@ -274,7 +263,6 @@ func findCheatSaving(dist [][]int, saveAtLeast int) int {
 					}
 				}
 			}
-
 		}
 	}
 
