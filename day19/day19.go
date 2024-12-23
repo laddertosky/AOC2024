@@ -42,7 +42,7 @@ func buildTrie(patterns []string) *TrieNode {
 	return &root
 }
 
-func dfs(cache map[int]map[*TrieNode]int, towel string, index int, node *TrieNode, root *TrieNode) bool {
+func dfs(towel string, index int, node *TrieNode, root *TrieNode) bool {
 	if index == len(towel) {
 		return node.isEnd
 	}
@@ -52,26 +52,12 @@ func dfs(cache map[int]map[*TrieNode]int, towel string, index int, node *TrieNod
 		return false
 	}
 
-	if cache[index] != nil && cache[index][node] > 0 {
-		return cache[index][node] == 1
-	}
-
 	result := false
 	node = node.children[c]
-	if dfs(cache, towel, index+1, node, root) {
+	if dfs(towel, index+1, node, root) {
 		result = true
-	} else if node.isEnd && dfs(cache, towel, index+1, root, root) {
+	} else if node.isEnd && dfs(towel, index+1, root, root) {
 		result = true
-	}
-
-	if cache[index] == nil {
-		cache[index] = map[*TrieNode]int{}
-	}
-
-	if result {
-		cache[index][node] = 1
-	} else {
-		cache[index][node] = 2
 	}
 	return result
 }
@@ -79,8 +65,7 @@ func dfs(cache map[int]map[*TrieNode]int, towel string, index int, node *TrieNod
 // for input1, reverse the input is much much faster
 func do_dfs(root *TrieNode, workers <-chan string, found chan<- bool, done chan<- struct{}) {
 	for towel := range workers {
-		cache := map[int]map[*TrieNode]int{}
-		result := dfs(cache, towel, 0, root, root)
+		result := dfs(towel, 0, root, root)
 		towel = reverse(towel)
 
 		found <- result
