@@ -49,7 +49,7 @@ func calculateComplexity(instructions []string, indirect int) int {
 		num, err := strconv.Atoi(instruction[0 : len(instructions)-2])
 		panicIf(err)
 
-		fmt.Printf("input: %s, length: %d, num: %d\n", instruction, keystrokes, num)
+		fmt.Printf("input: %s, num: %d (%e)\n", instruction, keystrokes, float64(keystrokes))
 		result += keystrokes * num
 	}
 

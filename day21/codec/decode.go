@@ -24,7 +24,7 @@ var MoveTransition Tranisition = Tranisition{
 		Up:       {Up, Activate},
 		Right:    {Right, Activate},
 		Down:     {Activate},
-		Activate: {Right, Up, Activate},
+		Activate: {Up, Right, Activate},
 	},
 	Right: {
 		Left:     {Left, Left, Activate},
@@ -37,7 +37,7 @@ var MoveTransition Tranisition = Tranisition{
 		Left:     {Down, Left, Left, Activate},
 		Up:       {Left, Activate},
 		Right:    {Down, Activate},
-		Down:     {Down, Left, Activate},
+		Down:     {Left, Down, Activate},
 		Activate: {Activate},
 	},
 }
