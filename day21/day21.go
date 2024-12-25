@@ -35,7 +35,8 @@ func run(path string, info fs.FileInfo, err error) error {
 	}
 
 	partOneResult := calculateComplexity(instructions, 2)
-	fmt.Printf("%s, partOne: %d, partTwo: %d\n", info.Name(), partOneResult, 0)
+	partTwoResult := calculateComplexity(instructions, 25)
+	fmt.Printf("%s, partOne: %d, partTwo: %d\n", info.Name(), partOneResult, partTwoResult)
 
 	return nil
 }
@@ -48,8 +49,8 @@ func calculateComplexity(instructions []string, indirect int) int {
 		num, err := strconv.Atoi(instruction[0 : len(instructions)-2])
 		panicIf(err)
 
-		fmt.Printf("input: %s, length: %d, num: %d\n", instruction, len(keystrokes), num)
-		result += len(keystrokes) * num
+		fmt.Printf("input: %s, length: %d, num: %d\n", instruction, keystrokes, num)
+		result += keystrokes * num
 	}
 
 	return result

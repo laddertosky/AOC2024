@@ -1,63 +1,63 @@
 package codec
 
-import "fmt"
+type MoveGroup map[string]map[string]int
 
-var NextArrowMove map[string]map[string][]string = map[string]map[string][]string{
+type Tranisition map[string]map[string][]string
+
+var MoveTransition Tranisition = Tranisition{
 	Up: {
-		Left:     {"v<A"},
-		Up:       {"A"},
-		Right:    {"v>A", ">vA"},
-		Down:     {"vA"},
-		Activate: {">A"},
+		Left:     {Down, Left, Activate},
+		Up:       {Activate},
+		Right:    {Down, Right, Activate},
+		Down:     {Down, Activate},
+		Activate: {Right, Activate},
 	},
 	Left: {
-		Left:     {"A"},
-		Up:       {">^A"},
-		Right:    {">>A"},
-		Down:     {">A"},
-		Activate: {">>^A", ">^>A"},
+		Left:     {Activate},
+		Up:       {Right, Up, Activate},
+		Right:    {Right, Right, Activate},
+		Down:     {Right, Activate},
+		Activate: {Right, Right, Up, Activate},
 	},
 	Down: {
-		Left:     {"<A"},
-		Up:       {"^A"},
-		Right:    {">A"},
-		Down:     {"A"},
-		Activate: {">^A", "^>A"},
+		Left:     {Left, Activate},
+		Up:       {Up, Activate},
+		Right:    {Right, Activate},
+		Down:     {Activate},
+		Activate: {Right, Up, Activate},
 	},
 	Right: {
-		Left:     {"<<A"},
-		Up:       {"<^A", "^<A"},
-		Right:    {"A"},
-		Down:     {"<A"},
-		Activate: {"^A"},
+		Left:     {Left, Left, Activate},
+		Up:       {Left, Up, Activate},
+		Right:    {Activate},
+		Down:     {Left, Activate},
+		Activate: {Up, Activate},
 	},
 	Activate: {
-		Left:     {"v<<A", "<v<A"},
-		Up:       {"<A"},
-		Right:    {"vA"},
-		Down:     {"<vA", "v<A"},
-		Activate: {"A"},
+		Left:     {Down, Left, Left, Activate},
+		Up:       {Left, Activate},
+		Right:    {Down, Activate},
+		Down:     {Down, Left, Activate},
+		Activate: {Activate},
 	},
 }
 
-func Decode(instruction string, indirect int) string {
+func Decode(instruction string, indirect int) int {
 	return DecodeNumeric(instruction, indirect)
 }
 
-func DecodeNumeric(instruction string, indirect int) string {
-	var result string
+func DecodeNumeric(instruction string, indirect int) int {
+	var result int
 	DecodeNumericOneStep(&result, instruction, 0, "", Activate, indirect)
-	fmt.Printf("input: %s, decoded numeric: %s\n", instruction, result)
 	return result
 }
 
-func DecodeNumericOneStep(result *string, instruction string, index int, current string, pos string, indirect int) {
+func DecodeNumericOneStep(result *int, instruction string, index int, current string, pos string, indirect int) {
 	if index == len(instruction) {
 		candidate := DecodeArrow(current, indirect)
-		if len(*result) == 0 {
+		if *result == 0 {
 			*result = candidate
-		} else if len(*result) > len(candidate) {
-			fmt.Printf("Replacing %s (len: %d) with %s (len: %d)\n", *result, len(*result), candidate, len(candidate))
+		} else if *result > candidate {
 			*result = candidate
 		}
 		return
@@ -103,33 +103,80 @@ func DecodeNumericOneStep(result *string, instruction string, index int, current
 	}
 }
 
-func DecodeArrowOneStep(result *string, instruction string, index int, current string, pos string) {
-	if index == len(instruction) {
-		if len(*result) == 0 {
-			*result = current
-		} else if len(*result) > len(current) {
-			fmt.Printf("Replacing %s (len: %d) with %s (len: %d)\n", *result, len(*result), current, len(current))
-			*result = current
-		}
-		return
-	}
-
-	now := string(instruction[index])
-	for _, next := range NextArrowMove[pos][now] {
-		DecodeArrowOneStep(result, instruction, index+1, current+next, now)
+func initialPattern() MoveGroup {
+	return MoveGroup{
+		Up: {
+			Left:     0,
+			Up:       0,
+			Right:    0,
+			Down:     0,
+			Activate: 0,
+		},
+		Left: {
+			Left:     0,
+			Up:       0,
+			Right:    0,
+			Down:     0,
+			Activate: 0,
+		},
+		Down: {
+			Left:     0,
+			Up:       0,
+			Right:    0,
+			Down:     0,
+			Activate: 0,
+		},
+		Right: {
+			Left:     0,
+			Up:       0,
+			Right:    0,
+			Down:     0,
+			Activate: 0,
+		},
+		Activate: {
+			Left:     0,
+			Up:       0,
+			Right:    0,
+			Down:     0,
+			Activate: 0,
+		},
 	}
 }
 
-func DecodeArrow(instruction string, indirect int) string {
-	if indirect == 0 {
-		return instruction
+func DecodeArrow(instruction string, indirect int) int {
+	pattern := initialPattern()
+	current := Activate
+	for _, next := range instruction {
+		pattern[current][string(next)]++
+		current = string(next)
 	}
 
-	var result string
-	DecodeArrowOneStep(&result, instruction, 0, "", Activate)
+	return DecodeArrowOneStep(pattern, indirect)
+}
 
-	fmt.Printf("instruction: %s\n", result)
-	return DecodeArrow(result, indirect-1)
+func DecodeArrowOneStep(pattern MoveGroup, indirect int) int {
+	if indirect == 0 {
+		result := 0
+		for _, next := range pattern {
+			for _, count := range next {
+				result += count
+			}
+		}
+		return result
+	}
+
+	nextPattern := initialPattern()
+	for first, next := range pattern {
+		for second, count := range next {
+			prev := Activate
+			for _, transition := range MoveTransition[first][second] {
+				nextPattern[prev][transition] += count
+				prev = transition
+			}
+		}
+	}
+
+	return DecodeArrowOneStep(nextPattern, indirect-1)
 }
 
 func move(direction string, count int) string {
