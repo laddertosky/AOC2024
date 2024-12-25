@@ -140,27 +140,3 @@ func move(direction string, count int) string {
 	}
 	return result
 }
-
-// Priority: Right > Top > Down > Left
-func move2(dr int, dc int) string {
-	var result string
-
-	if dc < 0 {
-		result += move(Left, -dc)
-	}
-
-	if dr < 0 {
-		result += move(Up, -dr)
-	}
-
-	if dr > 0 {
-		result += move(Down, dr)
-	}
-
-	if dc > 0 {
-		result += move(Right, dc)
-	}
-
-	result += Activate
-	return result
-}
