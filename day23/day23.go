@@ -18,18 +18,6 @@ func panicIf(err error) {
 
 type Graph map[string]map[string]bool
 
-func combination(m int, n int) int {
-	if m == 0 || n < 0 || m < n {
-		return 0
-	}
-
-	if n == 0 || m == n {
-		return 1
-	}
-
-	return combination(m-1, n-1) + combination(m-1, n)
-}
-
 func findPwd(graph Graph) string {
 	groups := map[string]map[string][]string{}
 	for u, vs := range graph {
@@ -109,6 +97,7 @@ func run(path string, info fs.FileInfo, err error) error {
 
 	f, err := os.Open(info.Name())
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 

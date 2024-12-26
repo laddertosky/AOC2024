@@ -87,6 +87,7 @@ func run(path string, info fs.FileInfo, err error) error {
 
 	f, err := os.Open(info.Name())
 	panicIf(err)
+	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 
